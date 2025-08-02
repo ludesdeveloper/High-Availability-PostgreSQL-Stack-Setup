@@ -8,44 +8,49 @@ This guide covers the installation and configuration of **etcd**, **PostgreSQL +
 
 ```mermaid
 flowchart TD
-    subgraph ETCD Cluster
+    subgraph ETCD["ETCD Cluster"]
         ETCD1[etcd1]
         ETCD2[etcd2]
         ETCD3[etcd3]
     end
 
-    subgraph Patroni Cluster
-        P1[Patroni 1 / PostgreSQL]
-        P2[Patroni 2 / PostgreSQL]
+    subgraph Patroni["Patroni Cluster"]
+        P1[Patroni1]
+        P2[Patroni2]
     end
 
-    subgraph Load Balancing
-        HAProxy[HAProxy]
-        PgBouncerRW[PgBouncer RW (5432)]
-        PgBouncerRO[PgBouncer RO (6432)]
+    subgraph LB["Load Balancing"]
+        HAProxy
+        PgBouncerRW[(PgBouncer RW)]
+        PgBouncerRO[(PgBouncer RO)]
     end
 
-    Clients[Clients / Apps]
+    Clients[(Clients)]
 
-    ETCD1 <---> ETCD2
-    ETCD2 <---> ETCD3
-    ETCD3 <---> ETCD1
+    %% ETCD Connections
+    ETCD1 -- Peer --> ETCD2
+    ETCD2 -- Peer --> ETCD3
+    ETCD3 -- Peer --> ETCD1
 
-    ETCD1 <--> P1
-    ETCD2 <--> P1
-    ETCD3 <--> P1
-    ETCD1 <--> P2
-    ETCD2 <--> P2
-    ETCD3 <--> P2
+    %% Patroni to ETCD
+    P1 -- Leader Election --> ETCD1
+    P1 -- Leader Election --> ETCD2
+    P1 -- Leader Election --> ETCD3
+    P2 -- Leader Election --> ETCD1
+    P2 -- Leader Election --> ETCD2
+    P2 -- Leader Election --> ETCD3
 
-    P1 <--> HAProxy
-    P2 <--> HAProxy
+    %% Patroni to HAProxy
+    P1 -- Primary --> HAProxy
+    P2 -- Replica --> HAProxy
 
-    HAProxy <--> PgBouncerRW
-    HAProxy <--> PgBouncerRO
+    %% HAProxy to PgBouncer
+    HAProxy -- RW Traffic --> PgBouncerRW
+    HAProxy -- RO Traffic --> PgBouncerRO
 
-    Clients <--> PgBouncerRW
-    Clients <--> PgBouncerRO
+    %% Clients
+    Clients -- Read/Write --> PgBouncerRW
+    Clients -- Read-Only --> PgBouncerRO
 ```
 
 ---
