@@ -8,49 +8,47 @@ This guide covers the installation and configuration of **etcd**, **PostgreSQL +
 
 ```mermaid
 flowchart TD
-    subgraph ETCD["ETCD Cluster"]
-        ETCD1[etcd1]
-        ETCD2[etcd2]
-        ETCD3[etcd3]
-    end
-
-    subgraph Patroni["Patroni Cluster"]
-        P1[Patroni1]
-        P2[Patroni2]
-    end
-
-    subgraph LB["Load Balancing"]
-        HAProxy
-        PgBouncerRW[(PgBouncer RW)]
-        PgBouncerRO[(PgBouncer RO)]
-    end
-
-    Clients[(Clients)]
-
-    %% ETCD Connections
-    ETCD1 -- Peer --> ETCD2
-    ETCD2 -- Peer --> ETCD3
-    ETCD3 -- Peer --> ETCD1
-
-    %% Patroni to ETCD
-    P1 -- Leader Election --> ETCD1
-    P1 -- Leader Election --> ETCD2
-    P1 -- Leader Election --> ETCD3
-    P2 -- Leader Election --> ETCD1
-    P2 -- Leader Election --> ETCD2
-    P2 -- Leader Election --> ETCD3
-
-    %% Patroni to HAProxy
-    P1 -- Primary --> HAProxy
-    P2 -- Replica --> HAProxy
-
-    %% HAProxy to PgBouncer
-    HAProxy -- RW Traffic --> PgBouncerRW
-    HAProxy -- RO Traffic --> PgBouncerRO
-
     %% Clients
-    Clients -- Read/Write --> PgBouncerRW
-    Clients -- Read-Only --> PgBouncerRO
+    Clients[(Application Clients)]
+
+    %% PgBouncer Layer (2 instances)
+    subgraph PGBouncer["PgBouncer (x2)"]
+        PGB1[PgBouncer-1]
+        PGB2[PgBouncer-2]
+    end
+
+    %% HAProxy Layer (2 instances)
+    subgraph HAProxy["HAProxy (x2)"]
+        HAP1[HAProxy-1]
+        HAP2[HAProxy-2]
+    end
+
+    %% Patroni/PostgreSQL Layer (2 nodes)
+    subgraph Patroni["Patroni + PostgreSQL (x2)"]
+        P1[Patroni-1\nPostgreSQL]
+        P2[Patroni-2\nPostgreSQL]
+    end
+
+    %% etcd Cluster (3 nodes)
+    subgraph ETCD["etcd Cluster (x3)"]
+        ETCD1[etcd-1]
+        ETCD2[etcd-2]
+        ETCD3[etcd-3]
+    end
+
+    %% Connections
+    Clients --> PGB1 & PGB2
+    PGB1 --> HAP1 & HAP2
+    PGB2 --> HAP1 & HAP2
+    HAP1 --> P1 & P2
+    HAP2 --> P1 & P2
+    P1 --> ETCD1 & ETCD2 & ETCD3
+    P2 --> ETCD1 & ETCD2 & ETCD3
+
+    %% etcd internal connections
+    ETCD1 -.-> ETCD2
+    ETCD2 -.-> ETCD3
+    ETCD3 -.-> ETCD1
 ```
 
 ---
