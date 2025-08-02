@@ -5,6 +5,7 @@ This guide covers the installation and configuration of **etcd**, **PostgreSQL +
 ---
 
 ## Architecture
+
 ```mermaid
 flowchart TD
     subgraph ETCD Cluster
@@ -14,17 +15,17 @@ flowchart TD
     end
 
     subgraph Patroni Cluster
-        P1[Patroni 1<br>PostgreSQL]
-        P2[Patroni 2<br>PostgreSQL]
+        P1[Patroni 1 / PostgreSQL]
+        P2[Patroni 2 / PostgreSQL]
     end
 
     subgraph Load Balancing
         HAProxy[HAProxy]
-        PgBouncerRW[PgBouncer RW<br>(port 5432)]
-        PgBouncerRO[PgBouncer RO<br>(port 6432)]
+        PgBouncerRW[PgBouncer RW (5432)]
+        PgBouncerRO[PgBouncer RO (6432)]
     end
 
-    Clients[Clients/Apps]
+    Clients[Clients / Apps]
 
     ETCD1 <---> ETCD2
     ETCD2 <---> ETCD3
